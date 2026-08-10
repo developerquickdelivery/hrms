@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials.json
+site_config.json
+common_site_config.json
+
+# Logs / temp
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+tmp/
+temp/
+*.tmp
+__pycache__/
+*.py[cod]
+.Python
+.pytest_cache/
+.mypy_cache/
+
+# Local dumps / backups
+*.sql
+*.sqlite3
+*.bak
+sites/
+logs/
+
+# Frappe / bench local artifacts (if copied here later)
+*.pyc
+*.egg-info/
+dist/
+build/
+.cache/
