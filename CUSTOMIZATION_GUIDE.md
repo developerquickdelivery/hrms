@@ -12,16 +12,17 @@ Never edit files under `apps/frappe`, `apps/erpnext`, or `apps/hrms`.
 
 ---
 
-## Navigation policy (Option B) — no duplicate menus
+## Navigation policy (Option B+) — role homes with nested sidebar
 
-**Decision:** Do **not** create parallel “QD Organization / QD Employees / QD Recruitment / QD Onboarding” sidebars.
+**Decision:** Keep **HR / Manager / Employee Dashboard** as root homes. Nest domain menus under each root (`parent_page`) so Desk shows expand/collapse sidebar dropdowns. Do **not** recreate flat duplicate roots (`QD Organization`, `QD Employees`, …).
 
 | User sees | Purpose |
 |---|---|
-| **… Dashboard** (role homes only) | Branded Quick Delivery landing + shortcuts |
-| **Standard HRMS menus** | Recruitment, Employee Lifecycle, Shift & Attendance, Leave, Payroll |
-| **Projects / Assets** | Kept (onboarding tasks + equipment) — not duplicated |
-| **QD custom DocTypes** | Open via dashboard links, Awesome Bar, or buttons on forms |
+| **HR Dashboard** (+ nested: People, Recruitment, Leave, Payroll, …) | HR home + dropdown modules |
+| **Manager Dashboard** (+ nested: Team Approvals, Team Leave, …) | Manager home + team tools |
+| **Employee Dashboard** (+ nested: My Leave, My Payslips, Help, …) | ESS home + self-service |
+| Standard HRMS modules (HR, Payroll, Assets, …) | Still available when Module Profile allows |
+| **QD custom DocTypes** | Via nested sidebar, dashboard shortcuts, or Awesome Bar |
 
 ### Sitemap → where to click
 
@@ -39,14 +40,22 @@ Never edit files under `apps/frappe`, `apps/erpnext`, or `apps/hrms`.
 | 2.10 Learning | Training Program/Event + Training Request |
 | 2.11 Employee Relations | Disciplinary Case + Grievance (no ER sidebar) |
 | 2.12 Assets | Workspace **Assets** + Asset Incident |
-| Projects | Standard **Project** (also used by onboarding) |
+| 2.13 Employee Requests | Custom request DocTypes + Advance / Benefits |
+| 2.14 Separation & Exit | Resignation, clearance, standard FnF / separation |
+| 2.15 Documents | Employee docs, templates, expiry, acknowledgements |
+| 2.16 Reports & Analytics | Standard HRMS reports + custom summaries, scheduled exports |
+| 2.17 Notifications | In-app, email, SMS, templates, reminders, delivery log |
+| 2.18 Integrations | SSO, gateways, biometric, finance, APIs, webhooks |
+| 2.19 Administration | Users, roles, workflows, delegation, retention, audit |
+| 2.20 Help and Support | User guide, FAQ, contact HR, announcements, feedback |
+| Projects | ERPNext **Project / Task / Timesheet** + QD fields, approval workflow, **Projects Hub / Team Projects / My Tasks**, **QD Project Score Snapshot**, **Project Performance Summary** report, **QD Task Board** page (Kanban + Gantt link), seeded **QD Project Templates** (6 playbooks), email + in-app notifications, monthly/weekly scheduled reports, row scope on Task/Project |
 
-Refresh Option B + attendance:
+Refresh Option B+ nested nav:
 ```bash
 bench --site qd.local migrate
-bench --site qd.local execute qd_hrms.setup.navigation.run
-bench --site qd.local execute qd_hrms.setup.attendance.run
+bench --site qd.local execute qd_hrms.setup.projects.run
 bench --site qd.local execute qd_hrms.setup.dashboards.run
+bench --site qd.local execute qd_hrms.setup.navigation.run
 bench build --app qd_hrms
 bench --site qd.local clear-cache
 ```
@@ -68,7 +77,10 @@ Frappe normally hides role checkboxes until **after** the first Save. `qd_hrms` 
 | Recruitment Officer | QD Recruitment Officer + HR User |
 | Payroll Officer | QD Payroll Officer + HR User (+ Accounts User if present) |
 | Administrator | Built-in System Manager — full site control (no separate Executive role) |
-| Payroll Officer | QD Payroll Officer + HR User (+ Accounts User if present) |
+
+**Module Profiles** (same names) hide unused ERP modules (Accounts, Selling, Stock, Manufacturing, CRM, Website, …) via `User.block_modules`. Payroll Officer keeps **Accounts**. Administrator / System Manager is never auto-blocked.
+
+Picking a Role Profile on User also sets the matching Module Profile and default workspace (Employee / Manager / HR Dashboard, or Payroll).
 
 ### Steps
 1. User → **New**
@@ -282,7 +294,7 @@ Continue sitemap **2.2 Organization Management** — DONE (see below).
 |---|---|
 | Company / Legal Entity | Standard **Company** |
 | Branches | Standard **Branch** + `custom_qd_is_hub`, `custom_qd_delivery_zone` |
-| Departments / Units / Teams | Standard **Department** tree + `custom_qd_org_level` (Division/Department/Unit/Team) |
+| Departments / Teams | Standard **Department** tree + `custom_qd_org_level` (Division/Department/Team). Org-level selector is HR-only (non-HR hidden). |
 | Cost Centers | Standard **Cost Center** |
 | Locations | **Work Location** on QD Position + Branch zone (standard Location if installed) |
 | Job Grades | Standard **Employee Grade** |
@@ -297,7 +309,7 @@ Or **QD HR Dashboard** → Organization & Employees card.
 ### Suggested setup order for Quick Delivery
 1. Confirm **Company** (from wizard)
 2. Create **Branches** (hubs/stations) — tick Is Delivery Hub where needed
-3. Build **Department** tree (Operations → Units/Teams; set QD Org Level)
+3. Build **Department** tree (Operations → Teams; set QD Org Level)
 4. Create **Employee Grade** + **Designation** (Rider, Dispatcher, Hub Supervisor, …)
 5. Create **QD Position** rows (one headcount seat each) and link on **Employee**
 
@@ -317,7 +329,7 @@ bench --site qd.local clear-cache
 
 | Sitemap item | Implementation |
 |---|---|
-| Employee Directory | Standard **Employee** list + workspace **QD Employees** |
+| Employee Directory | Standard **Employee** list (open via **HR Dashboard → People → Employee Profile (360 view)**) |
 | Employee Profile | Standard **Employee** form + QD custom fields |
 | Personal Information | Standard Employee tabs (basic, personal, contact) |
 | Employment Information | Standard fields + **QD Position**, Staff Category, Work Location |
@@ -330,11 +342,11 @@ bench --site qd.local clear-cache
 
 ### Open in Desk
 Awesome Bar → **Employee** (or **QD Employment Event** / **QD Employee Document**)  
-Or **QD HR Dashboard** / **QD Employee Dashboard**.
+Or **HR Dashboard → People** / **Employee Dashboard**.
 
 ### Create your first employee (test flow)
 1. **QD Organization** → create Branch, Grade, Designation, **QD Position**
-2. **QD Employees** → **New Employee**
+2. **Employee** → **New** (or **HR Dashboard → People → Employee Profile (360 view)**)
 3. Fill basics + **QD HR Details** (Staff Category, National ID, etc.)
 4. Link **QD Position** (auto-fills department/designation)
 5. Add **QD Employee Document** (contract, ID scan)
@@ -604,9 +616,6 @@ Or **Employee Dashboard** → Training Request.
 bench --site qd.local execute qd_hrms.setup.learning.run
 ```
 
-### Next module
-**2.13 Employee Requests**
-
 ---
 
 ## Sitemap 2.11 — Employee Relations (DONE)
@@ -647,8 +656,201 @@ Categories seeded by cloning the first existing Asset Category’s accounts (Uni
 bench --site qd.local execute qd_hrms.setup.assets.run
 ```
 
+---
+
+## Sitemap 2.13 — Employee Requests (DONE)
+
+| Sitemap item | Implementation |
+|---|---|
+| HR Letters | Custom **QD HR Letter** |
+| Profile Change Requests | Custom **QD Profile Change Request** |
+| Salary Advance Requests | Standard **Employee Advance** (+ QD reason / hub fields) |
+| Benefit Enrollment | Standard **Employee Benefit Application** |
+| Remote-Work Requests | Custom **QD Remote Work Request** |
+| Complaints | **QD Grievance** (Type = Complaint) from 2.11 |
+| HR Support Requests | Custom **QD HR Support Request** |
+| Custom Request Types | **QD Employee Request Type** + **QD Employee Request** |
+
+Seeded custom types: Schedule Change, Document Copy, Equipment Request, Other.
+
+**No QD Employee Requests workspace** — use **Employee Dashboard** / **HR Dashboard** → Employee Requests / My Requests.
+
+```bash
+bench --site qd.local execute qd_hrms.setup.employee_requests.run
+```
+
+---
+
+## Sitemap 2.14 — Separation & Exit (DONE)
+
+| Sitemap item | Implementation |
+|---|---|
+| Resignation | Custom **QD Resignation Request** (employee-initiated; approval → Employee Separation) |
+| Termination | **Employee Separation** + **Separation Type** = Termination |
+| Retirement | **Employee Separation** + **Separation Type** = Retirement; **Employee.date_of_retirement** |
+| Redundancy / Contract Completion | **Employee Separation** + **Separation Type** |
+| Separation Records | Standard **Employee Separation** (+ QD hub / type / clearance links) |
+| Exit Clearance | Custom **QD Exit Clearance** + **QD Exit Clearance Item** checklist |
+| Final Payroll Inputs | Standard **Full and Final Statement** (+ payroll validated flag) |
+| Exit Interview | Standard **Exit Interview** (+ rehire eligible / separation type) |
+| Access Deactivation | **QD Exit Clearance** — system access deactivated fields |
+| Records Preservation | **QD Exit Clearance** + **Employee Separation** records preserved flag |
+
+Seeded **QD Standard Separation** template (exit interview, clearance, assets, access, FnF, records).
+
+**No QD Separation workspace** — use **Employee Lifecycle** workspace and **HR Dashboard** → Separation & Exit.
+
+```bash
+bench --site qd.local execute qd_hrms.setup.separation.run
+```
+
+---
+
+## Sitemap 2.15 — Documents (DONE)
+
+| Sitemap item | Implementation |
+|---|---|
+| Employee Documents | **QD Employee Document** (attachment, employee link, category) |
+| Contracts | Category **Contract** + templates (Employment Contract, Rider Agreement) |
+| IDs and Certificates | Types: National ID, Passport, Driving License, Work Permit, Certificate |
+| Letters and Forms | Types: Letter, Form + **QD HR Letter** → save as Employee Document |
+| Policy Documents | Type **Policy** + policy templates (Code of Conduct, Safety, Privacy) |
+| Acknowledgements | `requires_acknowledgement` + **Acknowledge** action (employee permlevel 1) |
+| Templates | **QD Document Template** (seeded masters; create employee doc from template) |
+| Document Expiry Tracking | `expiry_date`, `days_to_expiry`, status Valid / Pending Renewal / Expired |
+
+Number cards: Documents Expiring Soon, Expired Documents, Pending Policy Acknowledgements.
+
+**No QD Documents workspace** — use **HR Dashboard** → Documents, **Employee** form → Documents button, **Employee Dashboard** → My Documents.
+
+```bash
+bench --site qd.local execute qd_hrms.setup.documents.run
+```
+
+---
+
+## Sitemap 2.16 — Reports & Analytics (DONE)
+
+| Sitemap item | Implementation |
+|---|---|
+| Workforce Reports | **Employee Analytics**, **Employee Information**, **Employee Exits**, custom **Workforce Summary** |
+| Recruitment Reports | Standard **Recruitment Analytics** |
+| Attendance Reports | **Monthly Attendance Sheet**, **Shift Attendance**, **Employees working on a holiday** |
+| Leave Reports | **Employee Leave Balance**, **Employee Leave Balance Summary**, **Leave Ledger** |
+| Payroll Reports | **Salary Register**, **Bank Remittance** (Payroll workspace) |
+| Performance Reports | **Appraisal Overview** |
+| Training Reports | Custom **Training Summary** (events + QD training requests) |
+| Compliance Reports | Custom **Compliance Summary** (docs, policy ack, disciplinary, exits) |
+| Executive Analytics | Custom **HR Operations Summary** (KPI snapshot; Administrator / HR) |
+| Custom Reports | **Workforce Summary**, **Compliance Summary**, **HR Operations Summary**, **Training Summary** |
+| Scheduled Exports | Seeded **Auto Email Report** templates (disabled — enable + set recipients) |
+
+**No QD Reports workspace** — use **HR Dashboard** → report cards, standard **HR** / **Payroll** / **Leaves** workspaces.
+
+```bash
+bench --site qd.local execute qd_hrms.setup.reports_analytics.run
+```
+
+---
+
+## Sitemap 2.17 — Notifications (DONE)
+
+| Sitemap item | Implementation |
+|---|---|
+| In-App Notifications | Standard **Notification Log** + **Notification** (System Notification channel) |
+| Email Notifications | Standard **Notification** (Email) + **Email Queue** + **Email Template** |
+| SMS Notifications | Standard **Notification** (SMS channel) + **SMS Settings** |
+| Reminder and Escalation Rules | Custom **QD Reminder Escalation Rule** + daily scheduler job |
+| Notification Templates | Custom **QD Notification Template** (seeded HR messages) |
+| Delivery Status and History | Custom **QD Notification Delivery Log** + **Email Queue** status |
+
+Seeded standard **Notification** rules: leave submit (email + in-app), document expiry (30 days), resignation pending.
+
+Daily job: `qd_hrms.tasks.notifications.process_reminder_escalation_rules`
+
+**No QD Notifications workspace** — use **HR Dashboard** → notification cards.
+
+```bash
+bench --site qd.local execute qd_hrms.setup.notifications.run
+```
+
+---
+
+## Sitemap 2.18 — Integrations (DONE)
+
+| Sitemap item | Implementation |
+|---|---|
+| Identity / SSO | Standard **LDAP Settings**, **Social Login Key** + endpoint registry |
+| Email / SMS Gateway | **Email Account**, **SMS Settings** + **QD Integration Endpoint** |
+| Biometric Devices | **QD Biometric Device** (+ API secret, last sync) + **QD Biometric Sync Log** |
+| Finance / Accounting | ERPNext **Company**, **Journal Entry**, **Payment Entry** |
+| Bank Export | **Bank Remittance** report + **Salary Slip** / payroll bank fields |
+| Document Storage | Standard **File** attachments (+ Employee documents) |
+| Delivery Operations | **Employee.custom_qd_delivery_rider_id** + REST lookup API |
+| REST APIs | **API Key**, **OAuth Client** + `qd_hrms.api.integrations.*` methods |
+| Webhooks / Event Messages | Standard **Webhook** + **QD Webhook Event Log** + inbound receiver API |
+
+**REST endpoints** (use header `X-QD-API-Key`):
+- `POST /api/method/qd_hrms.api.integrations.biometric_punch`
+- `POST /api/method/qd_hrms.api.integrations.webhook_receiver`
+- `GET /api/method/qd_hrms.api.integrations.get_employee_for_delivery`
+
+**No QD Integrations workspace** — use **HR Dashboard** → Integrations cards + standard **Integrations** workspace.
+
+```bash
+bench --site qd.local execute qd_hrms.setup.integrations.run
+```
+
 ### Next module
-**2.13 Employee Requests**
+**2.20 Help and Support** — complete (see below)
+
+---
+
+## Sitemap 2.19 — Administration (DONE)
+
+| Sitemap item | Implementation |
+|---|---|
+| User Management | Standard **User** + **Role Profile** (Employee, Manager, HR, Recruitment, Payroll Officer) |
+| Roles and Permissions | **Role**, **User Permission**, **Role Permission for Page and Report** |
+| Approval Workflows | **Workflow** + seeded inactive templates (Resignation, HR Letter) |
+| Delegation and Escalation | **QD Delegation Rule** + **QD Reminder Escalation Rule** (2.17) |
+| Master Data | Company, Branch, Department, Designation, Grade, **QD Position** |
+| System Configuration | **System Settings**, **HR Settings**, **Payroll Settings**, **Global Defaults** |
+| Security Settings | **System Settings** (password/session), **Session Default Settings** |
+| Audit Logs | **Activity Log**, **Version**, **Error Log**, **Access Log** |
+| Backup and Restore | **System Settings** → Download Backup; `bench backup` on server |
+| API Management | **API Key**, **OAuth Client** (see also 2.18) |
+| Retention Settings | **Log Settings** + **QD Retention Policy** (seeded HR log retention) |
+
+Workflow templates are **inactive by default** — enable in **Workflow** when ready to replace button-based approvals.
+
+Delegation lookup API: `qd_hrms.utils.delegation.get_delegation_for_user`
+
+**No QD Administration workspace** — **Administrator** uses Setup/Users; **HR Dashboard** → Administration cards for HR Officer.
+
+```bash
+bench --site qd.local execute qd_hrms.setup.administration.run
+```
+
+---
+
+## Sitemap 2.20 — Help and Support (DONE)
+
+| Sitemap item | Implementation |
+|---|---|
+| User Guide | **QD Help Article** (published articles by category/audience) |
+| Frequently Asked Questions | **QD FAQ Entry** (seeded starter FAQs) |
+| Contact HR | **QD HR Support Request** (2.13) + **QD HR Contact Settings** singleton |
+| System Announcements | **QD System Announcement** (date range, audience, priority) |
+| Feedback | **QD Employee Feedback** (rating, category, HR response workflow) |
+
+Help hub API: `qd_hrms.api.help_support.get_help_hub`
+
+**No QD Help workspace** — **Employee Dashboard** → Help and Support; **HR Dashboard** manages content.
+
+```bash
+bench --site qd.local execute qd_hrms.setup.help_support.run
+```
 
 ---
 
