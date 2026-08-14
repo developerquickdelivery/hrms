@@ -1,0 +1,13 @@
+[project]
+name = "qd_hrms"
+authors = [
+    { name = "Quick Delivery Service", email = "qd@quickdelivery.local" },
+]
+description = "Quick Delivery branding for ERPNext / Frappe HR"
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["version"]
+
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
