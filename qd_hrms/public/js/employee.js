@@ -8,6 +8,39 @@ frappe.ui.form.on("Employee", {
 		}
 
 		if (frm.is_new()) return;
+		if (frappe.boot.qd_is_self_service) return;
+
+		frm.add_custom_button(
+			__("Employment History"),
+			() => {
+				frappe.set_route("List", "Employee Employment History", {
+					employee: frm.doc.name,
+				});
+			},
+			__("History")
+		);
+
+		frm.add_custom_button(
+			__("New Reporting Assignment"),
+			() => {
+				frappe.new_doc("Employee Reporting Assignment", {
+					employee: frm.doc.name,
+					primary_manager: frm.doc.reports_to,
+					effective_from: frappe.datetime.get_today(),
+				});
+			},
+			__("Reporting")
+		);
+
+		frm.add_custom_button(
+			__("Reporting History"),
+			() => {
+				frappe.set_route("List", "Employee Reporting Assignment", {
+					employee: frm.doc.name,
+				});
+			},
+			__("Reporting")
+		);
 
 		frm.add_custom_button(
 			__("New Salary Change"),
@@ -53,7 +86,58 @@ frappe.ui.form.on("Employee", {
 		}
 	},
 
+	async designation(frm) {
+		if (!frm.doc.designation || frm.doc.grade) return;
+		const { message } = await frappe.db.get_value(
+			"Designation",
+			frm.doc.designation,
+			"custom_qd_default_employee_grade"
+		);
+		if (message?.custom_qd_default_employee_grade) {
+			await frm.set_value("grade", message.custom_qd_default_employee_grade);
+		}
+	},
+
+	async custom_qd_position(frm) {
+		if (!frm.doc.custom_qd_position) return;
+		const { message } = await frappe.db.get_value(
+			"QD Position",
+			frm.doc.custom_qd_position,
+			[
+				"company",
+				"branch",
+				"business_unit",
+				"department",
+				"team",
+				"designation",
+				"employee_grade",
+				"work_location",
+			]
+		);
+		if (!message) return;
+
+		const values = {};
+		for (const [target, source] of Object.entries({
+			company: "company",
+			branch: "branch",
+			custom_qd_business_unit: "business_unit",
+			department: "department",
+			custom_qd_team: "team",
+			designation: "designation",
+			grade: "employee_grade",
+			custom_qd_work_location: "work_location",
+		})) {
+			if (message[source] && frm.fields_dict[target]) {
+				values[target] = message[source];
+			}
+		}
+		await frm.set_value(values);
+	},
+
 	setup(frm) {
+		frm.set_query("custom_qd_position", () => ({
+			filters: { active: 1 },
+		}));
 		frm.set_query("custom_qd_acting_designation", () => ({
 			filters: { custom_qd_eligible_for_acting: 1 },
 		}));

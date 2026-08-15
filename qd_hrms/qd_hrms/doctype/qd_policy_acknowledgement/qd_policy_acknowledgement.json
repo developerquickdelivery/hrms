@@ -237,6 +237,15 @@
    "role": "Employee",
    "submit": 1,
    "write": 1
+  },
+  {
+   "create": 0,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Employee Self Service",
+   "submit": 1,
+   "write": 1
   }
  ],
  "sort_field": "modified",

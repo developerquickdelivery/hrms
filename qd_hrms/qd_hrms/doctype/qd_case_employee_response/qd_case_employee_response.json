@@ -1,0 +1,54 @@
+{
+ "actions": [],
+ "creation": "2026-08-15 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["response_date", "responded_by", "response_type", "response", "attachment"],
+ "fields": [
+  {
+   "fieldname": "response_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "responded_by",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "default": "Written Statement",
+   "fieldname": "response_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "Written Statement\nVerbal Response\nHearing Response\nAppeal Statement",
+   "reqd": 1
+  },
+  {
+   "fieldname": "response",
+   "fieldtype": "Text Editor",
+   "label": "Response",
+   "reqd": 1
+  },
+  {
+   "fieldname": "attachment",
+   "fieldtype": "Attach",
+   "label": "Attachment"
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-08-15 00:00:00",
+ "modified_by": "Administrator",
+ "module": "QD HRMS",
+ "name": "QD Case Employee Response",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "idx",
+ "sort_order": "ASC"
+}

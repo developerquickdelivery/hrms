@@ -12,10 +12,18 @@ frappe.ui.form.on("Attendance Request", {
 	refresh(frm) {
 		frm.set_intro(
 			__(
-				"Attendance Correction: employee requests a change; Leave Approver or HR Approves it. Approved requests submit and update Attendance. Locked payroll periods can only be changed by HR Manager."
+				"Attendance Correction: select the requested status and submit for approval. Locked periods must be formally reopened before any correction."
 			),
 			"blue"
 		);
+	},
+
+	reason(frm) {
+		if (frm.doc.reason === "Work From Home") {
+			frm.set_value("custom_qd_requested_status", "Work From Home");
+		} else if (!frm.doc.custom_qd_requested_status) {
+			frm.set_value("custom_qd_requested_status", "Present");
+		}
 	},
 
 	employee(frm) {

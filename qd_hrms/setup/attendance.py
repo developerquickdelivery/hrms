@@ -29,12 +29,16 @@ def run():
 	ensure_permissions()
 	ensure_workflow_masters()
 	ensure_workflow()
+	from qd_hrms.setup.attendance_time import run as run_attendance_time
+
+	extensions = run_attendance_time()
 	frappe.clear_cache()
 	return {
 		"workflow": WORKFLOW_NAME,
-		"period_lock": "QD Attendance Period Lock",
+		"period_lock": "Attendance Period",
 		"biometric_device": "QD Biometric Device",
 		"active": frappe.db.get_value("Workflow", WORKFLOW_NAME, "is_active"),
+		"extensions": extensions,
 	}
 
 
@@ -61,12 +65,22 @@ def _fields():
 				"in_standard_filter": 1,
 			},
 			{
+				"fieldname": "custom_qd_requested_status",
+				"fieldtype": "Select",
+				"label": "Requested Attendance Status",
+				"options": "Present\nAbsent\nHalf Day\nWork From Home\nOn Leave",
+				"insert_after": "custom_qd_correction_type",
+				"in_list_view": 1,
+				"in_standard_filter": 1,
+				"reqd": 1,
+			},
+			{
 				"fieldname": "custom_qd_status",
 				"fieldtype": "Select",
 				"label": "Correction Status",
 				"options": "Pending\nApproved\nRejected\nWithdrawn\nCancelled",
 				"default": "Pending",
-				"insert_after": "custom_qd_correction_type",
+				"insert_after": "custom_qd_requested_status",
 				"in_list_view": 1,
 				"in_standard_filter": 1,
 				"read_only": 1,
@@ -79,11 +93,11 @@ def _fields():
 			},
 			{
 				"fieldname": "custom_qd_original_status",
-				"fieldtype": "Data",
-				"label": "Original Attendance Status",
+				"fieldtype": "Small Text",
+				"label": "Original Attendance",
 				"insert_after": "custom_qd_correction_col",
 				"read_only": 1,
-				"description": "Filled from existing Attendance for the From Date, if any.",
+				"description": "Summary of submitted Attendance records in the correction date range.",
 			},
 		],
 		"Attendance": [
@@ -281,7 +295,7 @@ def ensure_workflow():
 			},
 		)
 
-	def add_transition(state, action, next_state, role, allow_self=1):
+	def add_transition(state, action, next_state, role, allow_self=0):
 		if not frappe.db.exists("Role", role):
 			return
 		doc.append(
@@ -301,11 +315,11 @@ def ensure_workflow():
 		add_transition("Rejected", "Reopen", "Pending", role)
 		add_transition("Approved", "Cancel", "Cancelled", role)
 
-	add_transition("Pending", "Cancel", "Withdrawn", "Employee")
+	add_transition("Pending", "Cancel", "Withdrawn", "Employee", 1)
 	add_transition("Pending", "Cancel", "Withdrawn", "HR User")
 	add_transition("Pending", "Cancel", "Withdrawn", "HR Manager")
 	add_transition("Pending", "Cancel", "Withdrawn", "System Manager")
-	add_transition("Rejected", "Cancel", "Withdrawn", "Employee")
+	add_transition("Rejected", "Cancel", "Withdrawn", "Employee", 1)
 
 	doc.save(ignore_permissions=True)
 	frappe.db.commit()

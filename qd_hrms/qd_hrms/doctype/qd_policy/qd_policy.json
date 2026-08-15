@@ -131,6 +131,10 @@
   {
    "read": 1,
    "role": "Employee"
+  },
+  {
+   "read": 1,
+   "role": "Employee Self Service"
   }
  ],
  "sort_field": "modified",

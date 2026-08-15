@@ -2,6 +2,15 @@
 	const SPLASH = "/assets/qd_hrms/images/qd-splash.png";
 	const FAVICON = "/assets/qd_hrms/images/qd-favicon.png";
 
+	// Loaded on every website page, so login-only branding must be gated.
+	function isAuthPage() {
+		const path = (document.body && document.body.dataset.path) || "";
+		if (path === "login") return true;
+		return Boolean(
+			document.querySelector(".for-login, .login-content, .page-card-head img")
+		);
+	}
+
 	function setFavicon() {
 		let icon = document.querySelector('link[rel="icon"]');
 		if (!icon) {
@@ -17,7 +26,8 @@
 		});
 	}
 
-	function brandLoginLogo() {
+	function brandLoginPage() {
+		document.body.classList.add("qd-auth-page");
 		document.querySelectorAll(".page-card-head img").forEach((img) => {
 			if (img.dataset.qdBranded) return;
 			img.src = SPLASH;
@@ -29,7 +39,9 @@
 
 	function boot() {
 		setFavicon();
-		brandLoginLogo();
+		if (isAuthPage()) {
+			brandLoginPage();
+		}
 	}
 
 	if (document.readyState === "loading") {

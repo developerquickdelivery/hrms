@@ -10,6 +10,7 @@
   "device_name",
   "vendor",
   "is_active",
+  "connector",
   "column_break_net",
   "branch",
   "location",
@@ -57,6 +58,13 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Active"
+  },
+  {
+   "fieldname": "connector",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Connector",
+   "options": "QD Biometric Connector"
   },
   {
    "fieldname": "column_break_net",
@@ -139,6 +147,14 @@
  "links": [
   {
    "link_doctype": "QD Biometric Sync Log",
+   "link_fieldname": "biometric_device"
+  },
+  {
+   "link_doctype": "QD Raw Checkin",
+   "link_fieldname": "biometric_device"
+  },
+  {
+   "link_doctype": "QD Biometric Employee Mapping",
    "link_fieldname": "biometric_device"
   }
  ],

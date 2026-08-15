@@ -1,0 +1,67 @@
+{
+ "actions": [],
+ "creation": "2026-08-15 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["hearing_date", "location", "chairperson", "status", "attendees", "agenda", "minutes", "outcome"],
+ "fields": [
+  {
+   "fieldname": "hearing_date",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Hearing Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Location"
+  },
+  {
+   "fieldname": "chairperson",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Chairperson",
+   "options": "User"
+  },
+  {
+   "default": "Scheduled",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Scheduled\nHeld\nPostponed\nCancelled"
+  },
+  {
+   "fieldname": "attendees",
+   "fieldtype": "Small Text",
+   "label": "Attendees"
+  },
+  {
+   "fieldname": "agenda",
+   "fieldtype": "Small Text",
+   "label": "Agenda"
+  },
+  {
+   "fieldname": "minutes",
+   "fieldtype": "Text Editor",
+   "label": "Minutes"
+  },
+  {
+   "fieldname": "outcome",
+   "fieldtype": "Small Text",
+   "label": "Outcome"
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-08-15 00:00:00",
+ "modified_by": "Administrator",
+ "module": "QD HRMS",
+ "name": "QD Case Hearing",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "idx",
+ "sort_order": "ASC"
+}

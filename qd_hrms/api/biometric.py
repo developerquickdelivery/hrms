@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 
 import frappe
 from frappe import _
@@ -53,10 +54,40 @@ def _normalize_log_type(value) -> str | None:
 	return None
 
 
-def _employee_for_device_user(device_user_id: str) -> str | None:
-	if not device_user_id:
+def _mapping_for_device_user(device, device_user_id: str):
+	device_user_id = str(device_user_id).strip()
+	name = frappe.db.get_value(
+		"QD Biometric Employee Mapping",
+		{
+			"biometric_device": device.name,
+			"device_user_id": device_user_id,
+			"is_active": 1,
+		},
+		"name",
+	)
+	if name:
+		return frappe.get_doc("QD Biometric Employee Mapping", name)
+
+	# Backward-compatible migration: convert the old global Employee device ID
+	# into a durable device-scoped mapping on first use.
+	employees = frappe.get_all(
+		"Employee",
+		filters={"attendance_device_id": device_user_id, "status": "Active"},
+		pluck="name",
+		limit=2,
+	)
+	if len(employees) != 1:
 		return None
-	return frappe.db.get_value("Employee", {"attendance_device_id": str(device_user_id).strip()}, "name")
+	return frappe.get_doc(
+		{
+			"doctype": "QD Biometric Employee Mapping",
+			"biometric_device": device.name,
+			"device_user_id": device_user_id,
+			"employee": employees[0],
+			"is_active": 1,
+			"notes": "Migrated automatically from Employee Attendance Device ID.",
+		}
+	).insert(ignore_permissions=True)
 
 
 def _already_logged(employee: str, stamp) -> bool:
@@ -85,6 +116,114 @@ def _create_checkin(employee: str, stamp, log_type: str | None, device_id: str) 
 	return doc.name
 
 
+def _event_key(device_name: str, user_id: str, stamp, log_type: str | None, raw: dict) -> str:
+	source_id = raw.get("event_id") or raw.get("id") or raw.get("uid")
+	identity = source_id or f"{user_id}|{stamp}|{log_type or ''}"
+	return sha256(f"{device_name}|{identity}".encode()).hexdigest()
+
+
+def _capture_raw(device, raw: dict):
+	user_id = raw.get("device_user_id") or raw.get("user_id") or raw.get("pin")
+	stamp = raw.get("timestamp") or raw.get("time")
+	log_type = _normalize_log_type(raw.get("log_type") or raw.get("punch"))
+	if not user_id or not stamp:
+		return None, "Device User ID and timestamp are required"
+	try:
+		stamp = get_datetime(stamp)
+	except Exception:
+		return None, f"Bad timestamp for user {user_id}"
+
+	key = _event_key(device.name, str(user_id).strip(), stamp, log_type, raw)
+	existing = frappe.db.exists("QD Raw Checkin", key)
+	if existing:
+		return frappe.get_doc("QD Raw Checkin", existing), "Duplicate"
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "QD Raw Checkin",
+			"event_key": key,
+			"biometric_device": device.name,
+			"connector": device.connector,
+			"device_user_id": str(user_id).strip(),
+			"timestamp": stamp,
+			"log_type": log_type,
+			"status": "Received",
+			"raw_payload": json.dumps(raw, default=str, sort_keys=True),
+		}
+	)
+	doc.insert(ignore_permissions=True)
+	return doc, None
+
+
+def process_raw_checkin(raw_doc) -> tuple[str, str | None]:
+	if isinstance(raw_doc, str):
+		raw_doc = frappe.get_doc("QD Raw Checkin", raw_doc)
+	if raw_doc.status == "Processed":
+		return "Duplicate", raw_doc.employee_checkin
+
+	device = frappe.get_doc("QD Biometric Device", raw_doc.biometric_device)
+	mapping = _mapping_for_device_user(device, raw_doc.device_user_id)
+	if not mapping:
+		message = (
+			f"No active mapping for device {device.name}, user {raw_doc.device_user_id}. "
+			"Create QD Biometric Employee Mapping and reprocess."
+		)
+		frappe.db.set_value(
+			"QD Raw Checkin",
+			raw_doc.name,
+			{"status": "Failed", "error_message": message},
+			update_modified=False,
+		)
+		return "Failed", None
+
+	frappe.db.set_value(
+		"QD Raw Checkin",
+		raw_doc.name,
+		{
+			"status": "Mapped",
+			"employee_mapping": mapping.name,
+			"employee": mapping.employee,
+			"error_message": None,
+		},
+		update_modified=False,
+	)
+	try:
+		checkin = _create_checkin(
+			mapping.employee,
+			raw_doc.timestamp,
+			raw_doc.log_type,
+			device.name,
+		)
+		if not checkin:
+			checkin = frappe.db.get_value(
+				"Employee Checkin",
+				{"employee": mapping.employee, "time": raw_doc.timestamp},
+				"name",
+			)
+		frappe.db.set_value(
+			"QD Raw Checkin",
+			raw_doc.name,
+			{
+				"status": "Processed",
+				"employee_checkin": checkin,
+				"processed_on": now_datetime(),
+				"error_message": None,
+			},
+			update_modified=False,
+		)
+		return "Processed", checkin
+	except Exception as exc:
+		message = str(exc)
+		status = "Blocked" if "Period Locked" in message or "period is locked" in message else "Failed"
+		frappe.db.set_value(
+			"QD Raw Checkin",
+			raw_doc.name,
+			{"status": status, "error_message": message[:500]},
+			update_modified=False,
+		)
+		return status, None
+
+
 def ingest_punches(device_id: str, punches: list, secret: str) -> dict:
 	frappe.flags.ignore_permissions = True
 	device = _load_device(device_id)
@@ -102,33 +241,32 @@ def _ingest(device, punches: list) -> dict:
 	last_punch = None
 
 	for raw in punches or []:
-		user_id = raw.get("device_user_id") or raw.get("user_id") or raw.get("pin")
-		stamp = raw.get("timestamp") or raw.get("time")
-		log_type = _normalize_log_type(raw.get("log_type") or raw.get("punch"))
-		if not user_id or not stamp:
+		raw_doc, capture_error = _capture_raw(device, raw)
+		if not raw_doc:
+			skipped += 1
+			errors.append(capture_error)
+			continue
+		last_punch = max(last_punch, raw_doc.timestamp) if last_punch else raw_doc.timestamp
+		if capture_error == "Duplicate":
 			skipped += 1
 			continue
-		try:
-			stamp = get_datetime(stamp)
-		except Exception:
-			skipped += 1
-			errors.append(f"Bad timestamp for user {user_id}")
-			continue
-		employee = _employee_for_device_user(user_id)
-		if not employee:
-			skipped += 1
-			errors.append(f"No Employee with Attendance Device ID {user_id}")
-			continue
-		name = _create_checkin(employee, stamp, log_type, device.name)
-		if name:
+		result, _checkin = process_raw_checkin(raw_doc)
+		if result == "Processed":
 			created += 1
-			last_punch = stamp
 		else:
 			skipped += 1
+			errors.append(f"{raw_doc.device_user_id}: {result}")
 
 	device.db_set("last_sync", now_datetime(), update_modified=False)
 	if last_punch:
 		device.db_set("last_punch_time", last_punch, update_modified=False)
+	if device.connector:
+		frappe.db.set_value(
+			"QD Biometric Connector",
+			device.connector,
+			{"last_heartbeat": now_datetime(), "status": "Active"},
+			update_modified=False,
+		)
 
 	status = "Success"
 	if errors and created:
@@ -195,6 +333,7 @@ def list_devices():
 			"device_id",
 			"device_name",
 			"vendor",
+			"connector",
 			"ip_address",
 			"port",
 			"poll_interval_sec",
@@ -202,3 +341,13 @@ def list_devices():
 		],
 	)
 	return rows
+
+
+@frappe.whitelist()
+def reprocess_raw_checkin(name: str):
+	allowed = {"System Manager", "HR Manager", "HR User"}
+	if not (set(frappe.get_roles()) & allowed) and frappe.session.user != "Administrator":
+		frappe.throw(_("Not permitted to reprocess biometric records."), frappe.PermissionError)
+	result, checkin = process_raw_checkin(name)
+	frappe.db.commit()
+	return {"name": name, "status": result, "employee_checkin": checkin}
