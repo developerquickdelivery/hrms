@@ -8,7 +8,7 @@ name: Deploy production HRMS
 on:
   workflow_dispatch:
   push:
-    branches: [main, hrms-ops]
+    branches: [main]
     paths:
       - "qd_hrms_app/**"
       - "scripts/deploy_qd_hrms_production.sh"
@@ -31,7 +31,7 @@ jobs:
   deploy:
     needs: validate
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/hrms-ops' || github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
 

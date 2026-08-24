@@ -2,8 +2,9 @@ name: Quality
 
 on:
   push:
-    branches: [main, master, hrms-ops]
+    branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
   validate:
