@@ -65,12 +65,30 @@ def after_install():
 
 
 def after_migrate():
-	"""Re-sync desk metadata only; do not rebuild workflows on every migrate."""
+	"""Re-sync desk metadata, org structure, roles, and UI permissions on every deploy."""
 	from qd_hrms.setup.self_service import run as run_self_service
 	from qd_hrms.setup.analytics import run as run_analytics
 	from qd_hrms.setup.notifications import run as run_notifications
 	from qd_hrms.setup.integrations import run as run_integrations
 	from qd_hrms.setup.hr_admin import run as run_hr_admin
+	from qd_hrms.setup.org_data import apply_all as run_org_data
+	from qd_hrms.setup.roles import apply_role_profiles as run_roles
+	from qd_hrms.setup.ui import apply_ui_fix as run_ui_fix
+
+	try:
+		run_org_data()
+	except Exception as e:
+		frappe.log_error(f"Error in run_org_data: {e}")
+
+	try:
+		run_roles()
+	except Exception as e:
+		frappe.log_error(f"Error in run_roles: {e}")
+
+	try:
+		run_ui_fix()
+	except Exception as e:
+		frappe.log_error(f"Error in run_ui_fix: {e}")
 
 	run_self_service()
 	run_analytics()

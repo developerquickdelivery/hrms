@@ -1,345 +1,221 @@
-"""Quick Delivery organizational master data.
-
-Creates the 8 QD departments, 6 employee grades, 25 designations, and
-25 QD Position headcount seats with full reporting hierarchy.
-
-Run via:
-    bench --site <site> execute qd_hrms.setup.org_data.run
-"""
-
-from __future__ import annotations
-
+import os
 import frappe
-from frappe import _
-from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
-COMPANY = "Quick Delivery"
+def apply_all():
+    comp = frappe.get_all("Company", fields=["name", "abbr"])[0]
+    C, A = comp.name, comp.abbr
+    print(f"Target Company: {C} ({A})")
 
-# ────────────────────────────────────────────────────────────────────
-# 1. Departments
-# ────────────────────────────────────────────────────────────────────
+    # 1. Custom Fields
+    print("Configuring custom fields...")
+    from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+    create_custom_fields(
+        {
+            "Designation": [
+                {
+                    "fieldname": "custom_qd_is_active",
+                    "fieldtype": "Check",
+                    "label": "Active",
+                    "default": "1",
+                    "insert_after": "designation_name",
+                    "in_list_view": 1,
+                    "in_standard_filter": 1,
+                }
+            ]
+        },
+        ignore_validate=True,
+        update=True,
+    )
 
-QD_DEPARTMENTS = (
-	"Executive Management",
-	"Human Resources",
-	"Information Technology",
-	"Finance",
-	"Operations",
-	"Marketing & Business Development",
-	"Merchant Management",
-	"ERP Development Division",
-)
+    # 2. Departments
+    D = [
+        "Executive Management",
+        "Human Resources",
+        "Information Technology",
+        "Finance",
+        "Operations",
+        "Marketing & Business Development",
+        "Merchant Management",
+        "ERP Development Division",
+    ]
+    root = frappe.get_all("Department", filters={"is_group": 1, "company": C}, pluck="name")
+    root_dept = root[0] if root else None
+    qd_depts = {f"{d} - {A}" for d in D}
 
-# ────────────────────────────────────────────────────────────────────
-# 2. Employee Grades
-# ────────────────────────────────────────────────────────────────────
+    print("Disabling default non-QD departments...")
+    for d in frappe.get_all("Department", filters={"company": C, "is_group": 0}, pluck="name"):
+        if d not in qd_depts:
+            frappe.db.set_value("Department", d, "disabled", 1)
 
-QD_GRADES = (
-	{"name": "Grade 1 - Entry", "code": "QD-G1", "level": 1, "category": "Entry"},
-	{"name": "Grade 2 - Officer", "code": "QD-G2", "level": 2, "category": "Operational"},
-	{"name": "Grade 3 - Intermediate", "code": "QD-G3", "level": 3, "category": "Professional"},
-	{"name": "Grade 4 - Supervisor", "code": "QD-G4", "level": 4, "category": "Supervisory"},
-	{"name": "Grade 5 - Manager", "code": "QD-G5", "level": 5, "category": "Management"},
-	{"name": "Grade 6 - Executive", "code": "QD-G6", "level": 6, "category": "Executive"},
-)
+    print("Provisioning 8 QD Departments...")
+    for d in D:
+        n = f"{d} - {A}"
+        if frappe.db.exists("Department", n):
+            frappe.db.set_value("Department", n, "disabled", 0)
+        else:
+            doc = frappe.get_doc({
+                "doctype": "Department",
+                "department_name": d,
+                "name": n,
+                "company": C,
+                "is_group": 0,
+                "parent_department": root_dept,
+            })
+            doc.flags.ignore_links = True
+            doc.insert(ignore_permissions=True)
 
-# ────────────────────────────────────────────────────────────────────
-# 3. Designations  (name, grade, eligible_for_acting)
-# ────────────────────────────────────────────────────────────────────
+    # 3. Employee Grades
+    G = [
+        ("Grade 1 - Entry", "QD-G1", 1, "Entry"),
+        ("Grade 2 - Officer", "QD-G2", 2, "Operational"),
+        ("Grade 3 - Intermediate", "QD-G3", 3, "Professional"),
+        ("Grade 4 - Supervisor", "QD-G4", 4, "Supervisory"),
+        ("Grade 5 - Manager", "QD-G5", 5, "Management"),
+        ("Grade 6 - Executive", "QD-G6", 6, "Executive"),
+    ]
+    print("Provisioning 6 Employee Grades...")
+    for n, c, l, cat in G:
+        if frappe.db.exists("Employee Grade", n):
+            doc = frappe.get_doc("Employee Grade", n)
+            if doc.meta.has_field("custom_qd_grade_code"): doc.custom_qd_grade_code = c
+            if doc.meta.has_field("custom_qd_grade_level"): doc.custom_qd_grade_level = l
+            if doc.meta.has_field("custom_qd_grade_category"): doc.custom_qd_grade_category = cat
+            if doc.meta.has_field("custom_qd_is_active"): doc.custom_qd_is_active = 1
+            doc.flags.ignore_links = True
+            doc.save(ignore_permissions=True)
+        else:
+            doc_dict = {"doctype": "Employee Grade", "name": n}
+            meta = frappe.get_meta("Employee Grade")
+            if meta.has_field("custom_qd_grade_code"): doc_dict["custom_qd_grade_code"] = c
+            if meta.has_field("custom_qd_grade_level"): doc_dict["custom_qd_grade_level"] = l
+            if meta.has_field("custom_qd_grade_category"): doc_dict["custom_qd_grade_category"] = cat
+            if meta.has_field("custom_qd_is_active"): doc_dict["custom_qd_is_active"] = 1
+            doc = frappe.get_doc(doc_dict)
+            doc.flags.ignore_links = True
+            doc.insert(ignore_permissions=True)
 
-QD_DESIGNATIONS = (
-	# Executive Management
-	("General Manager", "Grade 6 - Executive", True),
-	# Human Resources
-	("HR Manager", "Grade 5 - Manager", True),
-	("HR Officer", "Grade 2 - Officer", False),
-	# Information Technology
-	("IT Manager", "Grade 5 - Manager", True),
-	("System Administrator", "Grade 4 - Supervisor", False),
-	("System Support Officer", "Grade 2 - Officer", False),
-	# Finance
-	("Finance Manager", "Grade 5 - Manager", True),
-	("Senior Finance Officer", "Grade 3 - Intermediate", False),
-	("Junior Finance Officer", "Grade 1 - Entry", False),
-	# Operations
-	("Operations Supervisor", "Grade 4 - Supervisor", True),
-	("Operations Coordinator", "Grade 2 - Officer", False),
-	("Fleet Coordinator", "Grade 2 - Officer", False),
-	("Order Processor", "Grade 2 - Officer", False),
-	# Marketing & Business Development
-	("Business Development Officer", "Grade 2 - Officer", False),
-	("Marketing Officer", "Grade 2 - Officer", False),
-	# Merchant Management
-	("Merchant Officer", "Grade 2 - Officer", False),
-	("Junior Merchant Officer", "Grade 1 - Entry", False),
-	# ERP Development Division
-	("Product Manager", "Grade 4 - Supervisor", False),
-	("Senior Full Stack Developer", "Grade 3 - Intermediate", False),
-	("Intermediate Full Stack Developer", "Grade 3 - Intermediate", False),
-	("Junior Developer", "Grade 1 - Entry", False),
-	("QA Engineer", "Grade 2 - Officer", False),
-	("UI/UX Designer", "Grade 2 - Officer", False),
-	("Business Analyst", "Grade 2 - Officer", False),
-)
+    # 4. Designations
+    DES = [
+        ("General Manager", "Grade 6 - Executive", 1),
+        ("HR Manager", "Grade 5 - Manager", 1),
+        ("HR Officer", "Grade 2 - Officer", 0),
+        ("IT Manager", "Grade 5 - Manager", 1),
+        ("System Administrator", "Grade 4 - Supervisor", 0),
+        ("System Support Officer", "Grade 2 - Officer", 0),
+        ("Finance Manager", "Grade 5 - Manager", 1),
+        ("Senior Finance Officer", "Grade 3 - Intermediate", 0),
+        ("Junior Finance Officer", "Grade 1 - Entry", 0),
+        ("Operations Supervisor", "Grade 4 - Supervisor", 1),
+        ("Operations Coordinator", "Grade 2 - Officer", 0),
+        ("Fleet Coordinator", "Grade 2 - Officer", 0),
+        ("Order Processor", "Grade 2 - Officer", 0),
+        ("Business Development Officer", "Grade 2 - Officer", 0),
+        ("Marketing Officer", "Grade 2 - Officer", 0),
+        ("Merchant Officer", "Grade 2 - Officer", 0),
+        ("Junior Merchant Officer", "Grade 1 - Entry", 0),
+        ("Product Manager", "Grade 4 - Supervisor", 0),
+        ("Senior Full Stack Developer", "Grade 3 - Intermediate", 0),
+        ("Intermediate Full Stack Developer", "Grade 3 - Intermediate", 0),
+        ("Junior Developer", "Grade 1 - Entry", 0),
+        ("QA Engineer", "Grade 2 - Officer", 0),
+        ("UI/UX Designer", "Grade 2 - Officer", 0),
+        ("Business Analyst", "Grade 2 - Officer", 0),
+    ]
+    active_desigs = {d[0] for d in DES}
+    print("Deactivating default designations...")
+    for d in frappe.get_all("Designation", pluck="name"):
+        if d not in active_desigs and frappe.get_meta("Designation").has_field("custom_qd_is_active"):
+            frappe.db.set_value("Designation", d, "custom_qd_is_active", 0)
 
-# ────────────────────────────────────────────────────────────────────
-# 4. Positions  (position_name, code, designation, department, grade, reports_to_position)
-# ────────────────────────────────────────────────────────────────────
+    print("Provisioning 24 QD Designations...")
+    for n, g, a in DES:
+        if frappe.db.exists("Designation", n):
+            doc = frappe.get_doc("Designation", n)
+            if doc.meta.has_field("custom_qd_default_employee_grade"): doc.custom_qd_default_employee_grade = g
+            if doc.meta.has_field("custom_qd_is_active"): doc.custom_qd_is_active = 1
+            if doc.meta.has_field("custom_qd_eligible_for_acting"): doc.custom_qd_eligible_for_acting = a
+            doc.flags.ignore_links = True
+            doc.save(ignore_permissions=True)
+        else:
+            doc_dict = {
+                "doctype": "Designation",
+                "designation_name": n,
+                "name": n,
+            }
+            meta = frappe.get_meta("Designation")
+            if meta.has_field("custom_qd_default_employee_grade"): doc_dict["custom_qd_default_employee_grade"] = g
+            if meta.has_field("custom_qd_is_active"): doc_dict["custom_qd_is_active"] = 1
+            if meta.has_field("custom_qd_eligible_for_acting"): doc_dict["custom_qd_eligible_for_acting"] = a
+            doc = frappe.get_doc(doc_dict)
+            doc.flags.ignore_links = True
+            doc.insert(ignore_permissions=True)
 
-QD_POSITIONS = (
-	# Executive Management
-	("General Manager", "QD-POS-001", "General Manager", "Executive Management", "Grade 6 - Executive", None),
-	# Human Resources
-	("HR Manager", "QD-POS-002", "HR Manager", "Human Resources", "Grade 5 - Manager", "General Manager"),
-	("HR Officer", "QD-POS-003", "HR Officer", "Human Resources", "Grade 2 - Officer", "HR Manager"),
-	# Information Technology
-	("IT Manager", "QD-POS-004", "IT Manager", "Information Technology", "Grade 5 - Manager", "General Manager"),
-	("System Administrator", "QD-POS-005", "System Administrator", "Information Technology", "Grade 4 - Supervisor", "IT Manager"),
-	("System Support Officer", "QD-POS-006", "System Support Officer", "Information Technology", "Grade 2 - Officer", "IT Manager"),
-	# Finance
-	("Finance Manager", "QD-POS-007", "Finance Manager", "Finance", "Grade 5 - Manager", "General Manager"),
-	("Senior Finance Officer", "QD-POS-008", "Senior Finance Officer", "Finance", "Grade 3 - Intermediate", "Finance Manager"),
-	("Junior Finance Officer", "QD-POS-009", "Junior Finance Officer", "Finance", "Grade 1 - Entry", "Finance Manager"),
-	# Operations
-	("Operations Supervisor", "QD-POS-010", "Operations Supervisor", "Operations", "Grade 4 - Supervisor", "General Manager"),
-	("Operations Coordinator", "QD-POS-011", "Operations Coordinator", "Operations", "Grade 2 - Officer", "Operations Supervisor"),
-	("Fleet Coordinator", "QD-POS-012", "Fleet Coordinator", "Operations", "Grade 2 - Officer", "Operations Supervisor"),
-	("Order Processor", "QD-POS-013", "Order Processor", "Operations", "Grade 2 - Officer", "Operations Supervisor"),
-	# Marketing & Business Development
-	("Business Development Officer", "QD-POS-014", "Business Development Officer", "Marketing & Business Development", "Grade 2 - Officer", "General Manager"),
-	("Marketing Officer", "QD-POS-015", "Marketing Officer", "Marketing & Business Development", "Grade 2 - Officer", "General Manager"),
-	# Merchant Management
-	("Merchant Officer", "QD-POS-016", "Merchant Officer", "Merchant Management", "Grade 2 - Officer", "General Manager"),
-	("Junior Merchant Officer", "QD-POS-017", "Junior Merchant Officer", "Merchant Management", "Grade 1 - Entry", "Merchant Officer"),
-	# ERP Development Division
-	("Product Manager", "QD-POS-018", "Product Manager", "ERP Development Division", "Grade 4 - Supervisor", "General Manager"),
-	("Senior Full Stack Developer", "QD-POS-019", "Senior Full Stack Developer", "ERP Development Division", "Grade 3 - Intermediate", "Product Manager"),
-	("Intermediate Full Stack Developer", "QD-POS-020", "Intermediate Full Stack Developer", "ERP Development Division", "Grade 3 - Intermediate", "Product Manager"),
-	("Junior Developer", "QD-POS-021", "Junior Developer", "ERP Development Division", "Grade 1 - Entry", "Product Manager"),
-	("QA Engineer", "QD-POS-022", "QA Engineer", "ERP Development Division", "Grade 2 - Officer", "Product Manager"),
-	("UI/UX Designer", "QD-POS-023", "UI/UX Designer", "ERP Development Division", "Grade 2 - Officer", "Product Manager"),
-	("Business Analyst", "QD-POS-024", "Business Analyst", "ERP Development Division", "Grade 2 - Officer", "Product Manager"),
-)
+    # 5. Positions
+    POS = [
+        ("General Manager", "QD-POS-001", "General Manager", "Executive Management", "Grade 6 - Executive", ""),
+        ("HR Manager", "QD-POS-002", "HR Manager", "Human Resources", "Grade 5 - Manager", "General Manager"),
+        ("HR Officer", "QD-POS-003", "HR Officer", "Human Resources", "Grade 2 - Officer", "HR Manager"),
+        ("IT Manager", "QD-POS-004", "IT Manager", "Information Technology", "Grade 5 - Manager", "General Manager"),
+        ("System Administrator", "QD-POS-005", "System Administrator", "Information Technology", "Grade 4 - Supervisor", "IT Manager"),
+        ("System Support Officer", "QD-POS-006", "System Support Officer", "Information Technology", "Grade 2 - Officer", "IT Manager"),
+        ("Finance Manager", "QD-POS-007", "Finance Manager", "Finance", "Grade 5 - Manager", "General Manager"),
+        ("Senior Finance Officer", "QD-POS-008", "Senior Finance Officer", "Finance", "Grade 3 - Intermediate", "Finance Manager"),
+        ("Junior Finance Officer", "QD-POS-009", "Junior Finance Officer", "Finance", "Grade 1 - Entry", "Finance Manager"),
+        ("Operations Supervisor", "QD-POS-010", "Operations Supervisor", "Operations", "Grade 4 - Supervisor", "General Manager"),
+        ("Operations Coordinator", "QD-POS-011", "Operations Coordinator", "Operations", "Grade 2 - Officer", "Operations Supervisor"),
+        ("Fleet Coordinator", "QD-POS-012", "Fleet Coordinator", "Operations", "Grade 2 - Officer", "Operations Supervisor"),
+        ("Order Processor", "QD-POS-013", "Order Processor", "Operations", "Grade 2 - Officer", "Operations Supervisor"),
+        ("Business Development Officer", "QD-POS-014", "Business Development Officer", "Marketing & Business Development", "Grade 2 - Officer", "General Manager"),
+        ("Marketing Officer", "QD-POS-015", "Marketing Officer", "Marketing & Business Development", "Grade 2 - Officer", "General Manager"),
+        ("Merchant Officer", "QD-POS-016", "Merchant Officer", "Merchant Management", "Grade 2 - Officer", "General Manager"),
+        ("Junior Merchant Officer", "QD-POS-017", "Junior Merchant Officer", "Merchant Management", "Grade 1 - Entry", "Merchant Officer"),
+        ("Product Manager", "QD-POS-018", "Product Manager", "ERP Development Division", "Grade 4 - Supervisor", "General Manager"),
+        ("Senior Full Stack Developer", "QD-POS-019", "Senior Full Stack Developer", "ERP Development Division", "Grade 3 - Intermediate", "Product Manager"),
+        ("Intermediate Full Stack Developer", "QD-POS-020", "Intermediate Full Stack Developer", "ERP Development Division", "Grade 3 - Intermediate", "Product Manager"),
+        ("Junior Developer", "QD-POS-021", "Junior Developer", "ERP Development Division", "Grade 1 - Entry", "Product Manager"),
+        ("QA Engineer", "QD-POS-022", "QA Engineer", "ERP Development Division", "Grade 2 - Officer", "Product Manager"),
+        ("UI/UX Designer", "QD-POS-023", "UI/UX Designer", "ERP Development Division", "Grade 2 - Officer", "Product Manager"),
+        ("Business Analyst", "QD-POS-024", "Business Analyst", "ERP Development Division", "Grade 2 - Officer", "Product Manager"),
+    ]
+    print("Provisioning 24 Headcount Positions...")
+    for n, c, des, dep, grd, rep in POS:
+        if frappe.db.exists("QD Position", n):
+            doc = frappe.get_doc("QD Position", n)
+            doc.position_code = c
+            doc.active = 1
+            doc.company = C
+            doc.designation = des
+            doc.employee_grade = grd
+            doc.department = f"{dep} - {A}"
+            doc.reports_to_position = rep or ""
+            doc.flags.ignore_links = True
+            doc.save(ignore_permissions=True)
+        else:
+            doc = frappe.get_doc({
+                "doctype": "QD Position",
+                "position_name": n,
+                "name": n,
+                "position_code": c,
+                "active": 1,
+                "company": C,
+                "designation": des,
+                "employee_grade": grd,
+                "department": f"{dep} - {A}",
+                "reports_to_position": rep or "",
+            })
+            doc.flags.ignore_links = True
+            doc.insert(ignore_permissions=True)
 
+    # 6. Leave Workflow
+    print("Configuring Leave Workflow...")
+    try:
+        import qd_hrms.setup.leave
+        qd_hrms.setup.leave.run()
+    except Exception as e:
+        print(f"Leave workflow note: {e}")
 
-# ════════════════════════════════════════════════════════════════════
-# Public entry point
-# ════════════════════════════════════════════════════════════════════
-
-def run():
-	"""Idempotent master-data provisioning. Safe to re-run."""
-	_ensure_designation_active_field()
-	result = {
-		"departments": _setup_departments(),
-		"grades": _setup_grades(),
-		"designations": _setup_designations(),
-		"positions": _setup_positions(),
-	}
-	frappe.db.commit()
-	frappe.clear_cache()
-	return result
-
-
-# ────────────────────────────────────────────────────────────────────
-# Designation active field (schema addition)
-# ────────────────────────────────────────────────────────────────────
-
-def _ensure_designation_active_field():
-	"""Add custom_qd_is_active Check to Designation so old samples can be disabled."""
-	create_custom_fields(
-		{
-			"Designation": [
-				{
-					"fieldname": "custom_qd_is_active",
-					"fieldtype": "Check",
-					"label": "Active",
-					"default": "1",
-					"insert_after": "designation_name",
-					"in_list_view": 1,
-					"in_standard_filter": 1,
-				}
-			]
-		},
-		ignore_validate=True,
-		update=True,
-	)
-
-
-# ────────────────────────────────────────────────────────────────────
-# Departments
-# ────────────────────────────────────────────────────────────────────
-
-def _get_root_department(company, abbr):
-	for candidate in (
-		f"{company} - {abbr}",
-		f"All Departments - {abbr}",
-		"All Departments",
-	):
-		if frappe.db.exists("Department", candidate):
-			return candidate
-	roots = frappe.get_all(
-		"Department",
-		filters={"is_group": 1, "company": company},
-		pluck="name",
-	)
-	if roots:
-		return roots[0]
-	return None
-
-
-def _setup_departments():
-	"""Disable default sample departments and create the 8 QD departments."""
-	company = COMPANY
-	abbr = frappe.db.get_value("Company", company, "abbr") or "QD"
-	root_dept = _get_root_department(company, abbr)
-
-	# Build set of QD department internal names (e.g. "Human Resources - QD")
-	qd_dept_names = set()
-	for dept_name in QD_DEPARTMENTS:
-		qd_dept_names.add(f"{dept_name} - {abbr}")
-
-	# Disable all existing leaf departments that are NOT in the QD list
-	existing = frappe.get_all(
-		"Department",
-		filters={"company": company, "is_group": 0},
-		fields=["name", "disabled"],
-	)
-	disabled_count = 0
-	for dept in existing:
-		if dept.name not in qd_dept_names and not dept.disabled:
-			frappe.db.set_value("Department", dept.name, "disabled", 1)
-			disabled_count += 1
-
-	# Create QD departments
-	created = []
-	for dept_name in QD_DEPARTMENTS:
-		full_name = f"{dept_name} - {abbr}"
-		if frappe.db.exists("Department", full_name):
-			# Re-enable if it was previously disabled
-			frappe.db.set_value("Department", full_name, "disabled", 0)
-			continue
-		doc_data = {
-			"doctype": "Department",
-			"department_name": dept_name,
-			"company": company,
-			"is_group": 0,
-		}
-		if root_dept:
-			doc_data["parent_department"] = root_dept
-		doc = frappe.get_doc(doc_data)
-		doc.flags.ignore_links = True
-		doc.insert(ignore_permissions=True)
-		created.append(doc.name)
-
-	return {"disabled": disabled_count, "created": created}
-
-
-# ────────────────────────────────────────────────────────────────────
-# Employee Grades
-# ────────────────────────────────────────────────────────────────────
-
-def _setup_grades():
-	"""Create 6 employee grades with QD-specific metadata."""
-	created = []
-	for grade in QD_GRADES:
-		if frappe.db.exists("Employee Grade", grade["name"]):
-			# Update existing
-			doc = frappe.get_doc("Employee Grade", grade["name"])
-		else:
-			doc = frappe.get_doc({"doctype": "Employee Grade", "name": grade["name"]})
-			doc.name = grade["name"]
-			created.append(grade["name"])
-
-		if doc.meta.has_field("custom_qd_grade_code"):
-			doc.custom_qd_grade_code = grade["code"]
-		if doc.meta.has_field("custom_qd_grade_level"):
-			doc.custom_qd_grade_level = grade["level"]
-		if doc.meta.has_field("custom_qd_grade_category"):
-			doc.custom_qd_grade_category = grade["category"]
-		if doc.meta.has_field("custom_qd_is_active"):
-			doc.custom_qd_is_active = 1
-
-		doc.flags.ignore_links = True
-		doc.save(ignore_permissions=True)
-
-	return {"created": created, "total": len(QD_GRADES)}
-
-
-# ────────────────────────────────────────────────────────────────────
-# Designations
-# ────────────────────────────────────────────────────────────────────
-
-def _setup_designations():
-	"""Disable default sample designations and create 25 QD designations."""
-	qd_names = {d[0] for d in QD_DESIGNATIONS}
-
-	# Mark all existing designations that are NOT in the QD list as inactive
-	existing = frappe.get_all("Designation", pluck="name")
-	disabled_count = 0
-	for name in existing:
-		if name not in qd_names:
-			if frappe.get_meta("Designation").has_field("custom_qd_is_active"):
-				frappe.db.set_value("Designation", name, "custom_qd_is_active", 0)
-				disabled_count += 1
-
-	# Create QD designations
-	created = []
-	for desig_name, grade_name, eligible_acting in QD_DESIGNATIONS:
-		if frappe.db.exists("Designation", desig_name):
-			doc = frappe.get_doc("Designation", desig_name)
-		else:
-			doc = frappe.get_doc({"doctype": "Designation", "designation": desig_name})
-			created.append(desig_name)
-
-		# Set grade link
-		if doc.meta.has_field("custom_qd_default_employee_grade"):
-			doc.custom_qd_default_employee_grade = grade_name
-		# Set active flag
-		if doc.meta.has_field("custom_qd_is_active"):
-			doc.custom_qd_is_active = 1
-		# Set acting eligibility
-		if doc.meta.has_field("custom_qd_eligible_for_acting"):
-			doc.custom_qd_eligible_for_acting = 1 if eligible_acting else 0
-
-		doc.flags.ignore_links = True
-		doc.save(ignore_permissions=True)
-
-	return {"disabled": disabled_count, "created": created}
-
-
-# ────────────────────────────────────────────────────────────────────
-# QD Positions
-# ────────────────────────────────────────────────────────────────────
-
-def _setup_positions():
-	"""Create 25 QD Position headcount seats with reporting hierarchy."""
-	company = COMPANY
-	abbr = frappe.db.get_value("Company", company, "abbr") or "QD"
-
-	created = []
-	for pos_name, pos_code, designation, dept_short, grade, reports_to in QD_POSITIONS:
-		department = f"{dept_short} - {abbr}"
-
-		if frappe.db.exists("QD Position", pos_name):
-			doc = frappe.get_doc("QD Position", pos_name)
-		else:
-			doc = frappe.get_doc(
-				{
-					"doctype": "QD Position",
-					"position_name": pos_name,
-				}
-			)
-			created.append(pos_name)
-
-		doc.position_code = pos_code
-		doc.active = 1
-		doc.company = company
-		doc.designation = designation
-		doc.employee_grade = grade
-		doc.department = department
-		doc.reports_to_position = reports_to or ""
-
-		doc.flags.ignore_links = True
-		doc.save(ignore_permissions=True)
-
-	return {"created": created, "total": len(QD_POSITIONS)}
+    frappe.db.commit()
+    frappe.clear_cache()
+    print("\n========================================================")
+    print(f"  ORGANIZATION SETUP APPLIED FOR {C} ({A})!")
+    print("========================================================\n")
