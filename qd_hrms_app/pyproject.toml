@@ -1,0 +1,33 @@
+[project]
+name = "qd_hrms"
+version = "0.0.1"
+authors = [
+    { name = "Quick Delivery Service", email = "qd@quickdelivery.local" },
+]
+description = "Quick Delivery branding for ERPNext / Frappe HR"
+requires-python = ">=3.10"
+readme = "README.md"
+
+# This app keeps hooks.py / setup / at the app root (same folder as nested qd_hrms/).
+# Map package name qd_hrms → current directory so `import qd_hrms.setup` works.
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-dir]
+qd_hrms = "."
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+	"api*",
+	"attendance*",
+	"config*",
+	"integrations*",
+	"overrides*",
+	"patches*",
+	"setup*",
+	"tests*",
+	"qd_hrms*",
+]
+exclude = ["public*", "node_modules*"]

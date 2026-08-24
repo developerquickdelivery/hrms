@@ -1,0 +1,13 @@
+{
+  "frappe_url": "http://127.0.0.1:8000",
+  "poll_seconds": 15,
+  "devices": [
+    {
+      "device_id": "HUB-01",
+      "vendor": "ZKTeco",
+      "ip": "192.168.1.201",
+      "port": 4370,
+      "secret": "paste-api-secret-from-QD-Biometric-Device"
+    }
+  ]
+}

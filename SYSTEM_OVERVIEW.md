@@ -44,7 +44,9 @@ ERPNext installs **many modules by default**. They are installed software, but:
 
 What you see now is the **Administrator** view: System Manager sees almost everything. That is why Accounting, Buying, Selling, Stock, Manufacturing appear next to your QD workspaces.
 
-For real users (HR Officer, Rider, Manager), `qd_hrms` assigns a **Module Profile** (same name as Role Profile) that blocks commerce modules. Pick **Role Profile** on User create — Module Profile + default dashboard workspace are applied automatically.
+For real users, assign standard ERPNext/HRMS roles and User Permissions using
+least privilege. System Managers can use standard Module Profiles to hide
+unrelated ERP modules without uninstalling them.
 
 ---
 
@@ -114,30 +116,20 @@ Your sitemap sections (2.1 → 2.20) are just that lifecycle, one chapter at a t
 
 | Role | Main home | Sidebar | Typical actions |
 |---|---|---|---|
-| QD Employee | Employee Dashboard | Nested: My Leave, Attendance, Payslips, My Tasks, Requests, Documents, Help | Leave, attendance, payslip, tasks, requests |
-| QD Department Manager | Manager Dashboard | Nested: Team Approvals, Leave, Performance, Team Projects, Requests, Relations, Assets, Help | Approve leave/projects, team tasks, reviews (`reports_to`) |
-| QD HR Officer | HR Dashboard | Nested: People → Projects Hub → Help & Admin | Employees, recruitment, projects, attendance, docs |
-| Payroll Officer | Payroll (standard + QD) | Module Profile keeps Accounts | Structures, payroll run, slips |
+| Employee | My HR | Self-service records allowed by ESS permissions | Leave, attendance, requests, documents |
+| Leave Approver / Manager | Standard HR workspaces | Team records allowed by reporting relationships | Approvals and team reviews |
+| HR User / HR Manager | HR and QD workspaces | HR operations | Employees, recruitment, attendance, documents |
+| Payroll User / Payroll Manager | Payroll | Payroll and required Accounts access | Structures, payroll run, slips |
 | Administrator / System Manager | Everything | All modules | Overall site control |
 
-### Project Management (QD layer on ERPNext Project / Task)
-- Custom fields + **QD Project Approval** workflow (`custom_qd_approval_status`)
-- Nested: **Projects Hub** / **Team Projects** / **My Tasks**
-- Task completion → project completion score → **QD Project Score Snapshot** → Goal progress + Appraisal KPI notes
-- **Project Performance Summary** report (HR + managers, team-scoped)
-- Monthly auto-snapshots via scheduler (`qd_hrms.tasks.projects.create_monthly_project_score_snapshots`)
-- Row scope on **Task** / **Project** by assignee / owner / team
-- Notifications: project approval (in-app + email), task assignment, overdue reminders (daily)
-- **Team Task Summary** report + desk KPI banner on project workspaces
-- **QD Task Board** page (Kanban) with project filter + **Gantt View** shortcut
-- Seeded **QD Project Templates** (Hub Rollout, HR Initiative, Compliance, IT, Delivery Ops, Onboarding)
-- Scheduled exports: **Monthly Project Performance Summary**, **Weekly Team Task Summary** (disabled by default)
-- Setup: `qd_hrms.setup.projects.run` (also `after_migrate`)
+### Project and task performance metrics
+- ERPNext **Project** and **Task** remain the source records.
+- Goal metric sources can reference project progress and task completion.
+- Task and Project update hooks resynchronize linked employee goals.
+- A daily reconciliation repairs metrics if an event was missed.
 
-### Remaining roadmap (later passes)
-- Full workflow state maps + activation of inactive templates
-- Automated tests for key permission/scope paths
-- Deeper data-model / deprecation documentation
+Release validation and operational requirements are documented in
+`PRODUCTION_DEPLOYMENT.md`.
 
 ---
 
@@ -170,12 +162,6 @@ Empty counts are normal at the start of org setup.
 
 ## Next action (after 2.20 — sitemap complete)
 
-**2.20 Help and Support** is installed. Full HRMS sitemap (2.1–2.20) is complete on `qd.local`.
-
-Recommended next:
-1. Hard-refresh Desk; expand **HR Dashboard** / **Manager Dashboard** / **Employee Dashboard** nested menus  
-2. Create a test user with Role Profile **Employee** / **HR Officer** — confirm sidebar hides Selling / Stock / Manufacturing  
-3. For managers: set `Employee.reports_to` so team row-scope works on QD requests / relations  
-4. Populate master data and smoke-test end-to-end flows
-
-Module Profiles + nested navigation install via migrate (`module_visibility`, `nested_navigation`).
+Before production, follow `PRODUCTION_DEPLOYMENT.md`, create staging users for
+Employee, manager/approver, HR, and Payroll roles, and smoke-test each
+end-to-end workflow with realistic User Permissions and reporting relationships.

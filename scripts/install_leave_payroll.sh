@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 cd ~/frappe-bench
 
 bench --site qd.local migrate
 bench build --app qd_hrms
 bench --site qd.local execute qd_hrms.setup.leave.run
-bench --site qd.local execute qd_hrms.setup.payroll.run
-bench --site qd.local execute qd_hrms.setup.dashboards.run
+bench --site qd.local execute qd_hrms.setup.leave_payroll.run
+bench --site qd.local execute qd_hrms.setup.analytics.run
 bench --site qd.local clear-cache
 
 echo "=== Leave types ==="

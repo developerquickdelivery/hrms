@@ -1,0 +1,1 @@
+# Device and middleware adapters (biometric, etc.).

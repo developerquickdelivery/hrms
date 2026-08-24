@@ -1,0 +1,79 @@
+name: Deploy production HRMS
+
+# Prerequisites (one-time on the VPS and in GitHub):
+# 1. Manual provision + first deploy succeeded.
+# 2. Repo secrets: PRODUCTION_HOST, PRODUCTION_USER, PRODUCTION_SSH_KEY, PRODUCTION_SITE
+# 3. PRODUCTION_USER can SSH and sudo (e.g. serveradmin with NOPASSWD)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, hrms-ops]
+    paths:
+      - "qd_hrms_app/**"
+      - "scripts/deploy_qd_hrms_production.sh"
+      - ".github/workflows/deploy-production.yml"
+
+concurrency:
+  group: production-hrms
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/validate_app.py
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/hrms-ops' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+
+      - name: Trust production host
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.PRODUCTION_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Prepare destination directories
+        env:
+          HOST: ${{ secrets.PRODUCTION_HOST }}
+          USER: ${{ secrets.PRODUCTION_USER }}
+        run: |
+          set -euo pipefail
+          ssh "${USER}@${HOST}" "mkdir -p /home/frappe/QD-HRMS/qd_hrms_app /home/frappe/QD-HRMS/scripts"
+
+      - name: Upload app and deploy script
+        env:
+          HOST: ${{ secrets.PRODUCTION_HOST }}
+          USER: ${{ secrets.PRODUCTION_USER }}
+        run: |
+          set -euo pipefail
+          rsync -az --delete \
+            --exclude '__pycache__' \
+            --exclude '*.pyc' \
+            qd_hrms_app/ "${USER}@${HOST}:/home/frappe/QD-HRMS/qd_hrms_app/"
+          rsync -az scripts/deploy_qd_hrms_production.sh \
+            "${USER}@${HOST}:/home/frappe/QD-HRMS/scripts/deploy_qd_hrms_production.sh"
+          ssh "${USER}@${HOST}" "chown -R frappe:frappe /home/frappe/QD-HRMS"
+
+      - name: Run production deploy
+        env:
+          HOST: ${{ secrets.PRODUCTION_HOST }}
+          USER: ${{ secrets.PRODUCTION_USER }}
+          SITE: ${{ secrets.PRODUCTION_SITE }}
+        run: |
+          set -euo pipefail
+          ssh "${USER}@${HOST}" \
+            "export SITE_NAME='${SITE}' QD_HRMS_SRC=/home/frappe/QD-HRMS/qd_hrms_app PATH=\$HOME/.local/bin:\$PATH; \
+             sudo -u frappe -E bash /home/frappe/QD-HRMS/scripts/deploy_qd_hrms_production.sh"

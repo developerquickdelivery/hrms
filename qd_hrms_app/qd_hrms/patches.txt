@@ -1,0 +1,7 @@
+[pre_model_sync]
+# Reserved for schema changes that must run before DocType sync.
+
+[post_model_sync]
+qd_hrms.patches.v15_0.performance_nine_box_and_energy_points
+qd_hrms.patches.v15_0.performance_native_scoring_and_peer_feedback
+qd_hrms.patches.v15_0.license_certification_auto_renewal

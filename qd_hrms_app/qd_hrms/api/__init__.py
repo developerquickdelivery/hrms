@@ -1,0 +1,1 @@
+# Public API methods for Quick Delivery integrations.
