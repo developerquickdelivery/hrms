@@ -38,6 +38,9 @@ if [[ -n "${QD_HRMS_GIT_URL}" ]]; then
 	fi
 elif [[ -n "${QD_HRMS_SRC}" ]]; then
 	# QD_HRMS_SRC = repo folder qd_hrms_app/ (contains pyproject.toml + qd_hrms/)
+	# Wipe out old broken files to prevent setuptools from finding old top-level packages
+	rm -rf apps/qd_hrms
+	
 	# Target must be apps/qd_hrms/qd_hrms so hooks.py lands at apps/qd_hrms/qd_hrms/hooks.py
 	mkdir -p apps/qd_hrms/qd_hrms
 	rsync -a --delete \
