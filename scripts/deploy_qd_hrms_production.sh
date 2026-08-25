@@ -64,6 +64,14 @@ fi
 
 bench --site "${SITE_NAME}" set-maintenance-mode on
 bench --site "${SITE_NAME}" install-app qd_hrms 2>/dev/null || true
+
+echo "==== DEBUGGING ===="
+bench --site "${SITE_NAME}" execute frappe.get_module_list --args '["qd_hrms"]' || true
+bench --site "${SITE_NAME}" execute frappe.get_app_path --args '["qd_hrms"]' || true
+ls -l apps/qd_hrms/modules.txt || true
+ls -l apps/qd_hrms/qd_hrms/modules.txt || true
+echo "==== END DEBUG ===="
+
 bench --site "${SITE_NAME}" migrate
 bench --site "${SITE_NAME}" execute qd_hrms.setup.verify_org.run || true
 # Asset build can OOM on 8GB; prefer app-only build with capped Node heap
