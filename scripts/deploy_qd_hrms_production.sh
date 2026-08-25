@@ -38,13 +38,13 @@ if [[ -n "${QD_HRMS_GIT_URL}" ]]; then
 	fi
 elif [[ -n "${QD_HRMS_SRC}" ]]; then
 	# QD_HRMS_SRC = repo folder qd_hrms_app/ (contains pyproject.toml + qd_hrms/)
-	# Target must be apps/qd_hrms/ so hooks.py lands at apps/qd_hrms/hooks.py
-	mkdir -p apps/qd_hrms
+	# Target must be apps/qd_hrms/qd_hrms so hooks.py lands at apps/qd_hrms/qd_hrms/hooks.py
+	mkdir -p apps/qd_hrms/qd_hrms
 	rsync -a --delete \
 		--exclude __pycache__ \
 		--exclude '*.pyc' \
 		--exclude .git \
-		"${QD_HRMS_SRC}/qd_hrms/" "apps/qd_hrms/"
+		"${QD_HRMS_SRC}/qd_hrms/" "apps/qd_hrms/qd_hrms/"
 	if [[ -f "${QD_HRMS_SRC}/pyproject.toml" ]]; then
 		cp "${QD_HRMS_SRC}/pyproject.toml" apps/qd_hrms/pyproject.toml
 	fi
