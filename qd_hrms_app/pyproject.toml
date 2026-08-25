@@ -14,20 +14,3 @@ readme = "README.md"
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.package-dir]
-qd_hrms = "."
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = [
-	"api*",
-	"attendance*",
-	"config*",
-	"integrations*",
-	"overrides*",
-	"patches*",
-	"setup*",
-	"tests*",
-	"qd_hrms*",
-]
-exclude = ["public*", "node_modules*"]
