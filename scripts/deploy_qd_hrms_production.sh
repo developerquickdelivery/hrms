@@ -51,6 +51,9 @@ elif [[ -n "${QD_HRMS_SRC}" ]]; then
 	if [[ -f "${QD_HRMS_SRC}/pyproject.toml" ]]; then
 		cp "${QD_HRMS_SRC}/pyproject.toml" apps/qd_hrms/pyproject.toml
 	fi
+	if [[ -f "${QD_HRMS_SRC}/modules.txt" ]]; then
+		cp "${QD_HRMS_SRC}/modules.txt" apps/qd_hrms/modules.txt
+	fi
 	# Ensure Python can import qd_hrms (hooks/setup live at app root)
 	./env/bin/pip uninstall -y qd_hrms >/dev/null 2>&1 || true
 	./env/bin/pip install -e ./apps/qd_hrms

@@ -1,0 +1,107 @@
+{
+ "actions": [],
+ "creation": "2026-08-15 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "source_doctype",
+  "source_name",
+  "metric_type",
+  "weight",
+  "column_break_1",
+  "current_value",
+  "calculated_progress",
+  "include_cancelled",
+  "active",
+  "last_synced_on",
+  "sync_error"
+ ],
+ "fields": [
+  {
+   "default": "Task",
+   "fieldname": "source_doctype",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Source Type",
+   "options": "Task\nProject",
+   "reqd": 1
+  },
+  {
+   "fieldname": "source_name",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Source",
+   "options": "source_doctype",
+   "reqd": 1
+  },
+  {
+   "default": "Progress",
+   "fieldname": "metric_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Metric",
+   "options": "Progress\nCompletion\nOn-time Completion",
+   "reqd": 1
+  },
+  {
+   "default": "100",
+   "fieldname": "weight",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Weight",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "current_value",
+   "fieldtype": "Float",
+   "label": "Current Value",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calculated_progress",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Calculated Progress",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "include_cancelled",
+   "fieldtype": "Check",
+   "label": "Treat Cancelled as Complete"
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "label": "Active"
+  },
+  {
+   "fieldname": "last_synced_on",
+   "fieldtype": "Datetime",
+   "label": "Last Synced On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sync_error",
+   "fieldtype": "Small Text",
+   "label": "Sync Error",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-08-15 00:00:00",
+ "modified_by": "Administrator",
+ "module": "QD HRMS",
+ "name": "QD Goal Metric Source",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "idx",
+ "sort_order": "ASC"
+}

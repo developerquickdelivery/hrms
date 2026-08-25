@@ -1,0 +1,142 @@
+{
+ "actions": [],
+ "creation": "2026-08-15 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "appraisal",
+  "employee",
+  "employee_name",
+  "original_score",
+  "calibrated_score",
+  "performance_level",
+  "potential_score",
+  "potential_level",
+  "nine_box",
+  "critical_role",
+  "retention_risk",
+  "successor_ready",
+  "development_action",
+  "rating_band",
+  "rationale"
+ ],
+ "fields": [
+  {
+   "fieldname": "appraisal",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Appraisal",
+   "options": "Appraisal",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "appraisal.employee",
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "appraisal.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "appraisal.final_score",
+   "fieldname": "original_score",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Original Score",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calibrated_score",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Calibrated Score",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "fieldname": "performance_level",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Performance",
+   "options": "Low\nModerate\nHigh",
+   "read_only": 1
+  },
+  {
+   "fieldname": "potential_score",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Potential Score",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "fieldname": "potential_level",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Potential",
+   "options": "Low\nModerate\nHigh",
+   "read_only": 1
+  },
+  {
+   "fieldname": "nine_box",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Nine-Box Placement",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "critical_role",
+   "fieldtype": "Check",
+   "label": "Critical Role"
+  },
+  {
+   "default": "Low",
+   "fieldname": "retention_risk",
+   "fieldtype": "Select",
+   "label": "Retention Risk",
+   "options": "Low\nMedium\nHigh"
+  },
+  {
+   "default": "0",
+   "fieldname": "successor_ready",
+   "fieldtype": "Check",
+   "label": "Successor Ready"
+  },
+  {
+   "fieldname": "development_action",
+   "fieldtype": "Small Text",
+   "label": "Development / Succession Action"
+  },
+  {
+   "fieldname": "rating_band",
+   "fieldtype": "Data",
+   "label": "Rating Band"
+  },
+  {
+   "fieldname": "rationale",
+   "fieldtype": "Small Text",
+   "label": "Rationale"
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-08-15 00:00:00",
+ "modified_by": "Administrator",
+ "module": "QD HRMS",
+ "name": "QD Performance Calibration Row",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "idx",
+ "sort_order": "ASC"
+}
