@@ -8,6 +8,10 @@ description = "Quick Delivery branding for ERPNext / Frappe HR"
 requires-python = ">=3.10"
 readme = "README.md"
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["qd_hrms", "qd_hrms.*"]
+
 # This app keeps hooks.py / setup / at the app root (same folder as nested qd_hrms/).
 # Map package name qd_hrms → current directory so `import qd_hrms.setup` works.
 [build-system]
