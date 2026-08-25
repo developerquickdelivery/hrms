@@ -102,3 +102,12 @@ def apply_role_profiles():
             doc.insert(ignore_permissions=True)
         else:
             doc.save(ignore_permissions=True)
+
+    print("Cleaning up standard ERPNext Role Profiles...")
+    all_profiles = frappe.get_all("Role Profile", pluck="name")
+    for p in all_profiles:
+        if not p.startswith("QD - "):
+            try:
+                frappe.delete_doc("Role Profile", p, ignore_permissions=True, force=True)
+            except Exception as e:
+                print(f"Could not delete {p}: {e}")
