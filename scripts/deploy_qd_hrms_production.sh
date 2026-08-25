@@ -7,7 +7,7 @@
 #   QD_HRMS_SRC=/path/to/qd_hrms_app   (or set QD_HRMS_GIT_URL)
 set -euo pipefail
 
-export PATH="${HOME}/.local/bin:${PATH}"
+export PATH="/home/frappe/.local/bin:${PATH}"
 BENCH_DIR="${BENCH_DIR:-/home/frappe/frappe-bench}"
 SITE_NAME="${SITE_NAME:-}"
 QD_HRMS_SRC="${QD_HRMS_SRC:-}"
