@@ -66,10 +66,15 @@ bench --site "${SITE_NAME}" set-maintenance-mode on
 bench --site "${SITE_NAME}" install-app qd_hrms 2>/dev/null || true
 
 echo "==== DEBUGGING ===="
-bench --site "${SITE_NAME}" execute frappe.get_module_list --args '["qd_hrms"]' || true
-bench --site "${SITE_NAME}" execute frappe.get_app_path --args '["qd_hrms"]' || true
-ls -l apps/qd_hrms/modules.txt || true
-ls -l apps/qd_hrms/qd_hrms/modules.txt || true
+./env/bin/python -c "import sys, traceback, importlib; print('sys.path:', sys.path); 
+try:
+    m = importlib.import_module('qd_hrms')
+    print('module:', m)
+    print('file:', getattr(m, '__file__', 'NONE'))
+except Exception as e:
+    traceback.print_exc()
+" || true
+ls -la apps/qd_hrms/qd_hrms/ || true
 echo "==== END DEBUG ===="
 
 bench --site "${SITE_NAME}" migrate
