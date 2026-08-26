@@ -56,6 +56,7 @@ elif [[ -n "${QD_HRMS_SRC}" ]]; then
 	fi
 	# Ensure Python can import qd_hrms (hooks/setup live at app root)
 	./env/bin/pip uninstall -y qd_hrms >/dev/null 2>&1 || true
+	rm -rf ./env/lib/python3.12/site-packages/qd_hrms*
 	./env/bin/pip install -e ./apps/qd_hrms
 else
 	echo "Set QD_HRMS_SRC or QD_HRMS_GIT_URL"
@@ -64,19 +65,6 @@ fi
 
 bench --site "${SITE_NAME}" set-maintenance-mode on
 bench --site "${SITE_NAME}" install-app qd_hrms 2>/dev/null || true
-
-echo "==== DEBUGGING ===="
-./env/bin/python -c "import sys, traceback, importlib; print('sys.path:', sys.path); 
-try:
-    m = importlib.import_module('qd_hrms')
-    print('module:', m)
-    print('file:', getattr(m, '__file__', 'NONE'))
-except Exception as e:
-    traceback.print_exc()
-" || true
-ls -la apps/qd_hrms/qd_hrms/ || true
-echo "==== END DEBUG ===="
-
 bench --site "${SITE_NAME}" migrate
 bench --site "${SITE_NAME}" execute qd_hrms.setup.verify_org.run || true
 # Asset build can OOM on 8GB; prefer app-only build with capped Node heap
