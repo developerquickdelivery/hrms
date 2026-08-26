@@ -1,0 +1,43 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-08-15 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["naming_series","employee","employee_name","company","department","column_break_1","course","training_program","preferred_start_date","manager_approver","approval_status","reason","business_benefit","nomination","enrollment","amended_from"],
+ "fields": [
+  {"fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"QD-TRQ-.YYYY.-","reqd":1},
+  {"fieldname":"employee","fieldtype":"Link","label":"Employee","options":"Employee","reqd":1,"in_list_view":1,"in_standard_filter":1},
+  {"fetch_from":"employee.employee_name","fieldname":"employee_name","fieldtype":"Data","label":"Employee Name","read_only":1},
+  {"fetch_from":"employee.company","fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","read_only":1},
+  {"fetch_from":"employee.department","fieldname":"department","fieldtype":"Link","label":"Department","options":"Department","read_only":1},
+  {"fieldname":"column_break_1","fieldtype":"Column Break"},
+  {"fieldname":"course","fieldtype":"Link","label":"Course","options":"QD Training Course","reqd":1},
+  {"fieldname":"training_program","fieldtype":"Link","label":"Training Program","options":"Training Program"},
+  {"fieldname":"preferred_start_date","fieldtype":"Date","label":"Preferred Start Date"},
+  {"fieldname":"manager_approver","fieldtype":"Link","label":"Manager Approver","options":"User","read_only":1},
+  {"default":"Draft","fieldname":"approval_status","fieldtype":"Select","label":"Status","options":"Draft\nPending Manager Approval\nPending HR Approval\nApproved\nRejected\nWithdrawn\nCancelled","read_only":1,"in_list_view":1,"in_standard_filter":1},
+  {"fieldname":"reason","fieldtype":"Small Text","label":"Reason","reqd":1},
+  {"fieldname":"business_benefit","fieldtype":"Small Text","label":"Expected Business Benefit"},
+  {"fieldname":"nomination","fieldtype":"Link","label":"Nomination","options":"QD Training Nomination","read_only":1},
+  {"fieldname":"enrollment","fieldtype":"Link","label":"Enrollment","options":"QD Training Enrollment","read_only":1},
+  {"fieldname":"amended_from","fieldtype":"Link","label":"Amended From","options":"QD Training Request","no_copy":1,"read_only":1,"print_hide":1}
+ ],
+ "is_submittable":1,
+ "modified":"2026-08-15 00:00:00",
+ "modified_by":"Administrator",
+ "module":"QD HRMS",
+ "name":"QD Training Request",
+ "naming_rule":"By \"Naming Series\" field",
+ "owner":"Administrator",
+ "permissions":[
+  {"amend":1,"cancel":1,"create":1,"delete":1,"email":1,"export":1,"print":1,"read":1,"report":1,"role":"System Manager","share":1,"submit":1,"write":1},
+  {"amend":1,"cancel":1,"create":1,"delete":1,"email":1,"export":1,"print":1,"read":1,"report":1,"role":"HR Manager","share":1,"submit":1,"write":1},
+  {"cancel":1,"create":1,"email":1,"export":1,"print":1,"read":1,"report":1,"role":"HR User","submit":1,"write":1},
+  {"create":1,"email":1,"print":1,"read":1,"role":"Employee","write":1},
+  {"create":1,"email":1,"print":1,"read":1,"role":"Employee Self Service","write":1}
+ ],
+ "sort_field":"modified",
+ "sort_order":"DESC",
+ "track_changes":1
+}
