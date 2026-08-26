@@ -36,6 +36,16 @@ def apply_ui_fix():
         "Projects": ["Projects User", "Projects Manager", "System Manager"],
         "CRM": ["Sales User", "Sales Manager", "System Manager"],
         "Assets": ["Accounts User", "Accounts Manager", "System Manager"],
+        "HR": ["HR Manager", "HR User", "System Manager"],
+        "Payroll": ["HR Manager", "HR User", "System Manager"],
+        "Recruitment": ["HR Manager", "HR User", "System Manager"],
+        "Employee Lifecycle": ["HR Manager", "HR User", "System Manager"],
+        "Performance": ["HR Manager", "HR User", "System Manager"],
+        "Shift & Attendance": ["HR Manager", "HR User", "System Manager"],
+        "Expense Claims": ["HR Manager", "HR User", "System Manager"],
+        "Leaves": ["HR Manager", "HR User", "System Manager"],
+        "Salary Payout": ["HR Manager", "HR User", "System Manager"],
+        "Tax & Benefits": ["HR Manager", "HR User", "System Manager"]
     }
 
     for ws_name, roles in WORKSPACE_ROLES.items():
@@ -53,7 +63,8 @@ def apply_ui_fix():
     BLOCKED_MODULES = [
         "Accounts", "Stock", "Buying", "Selling", "Manufacturing",
         "Quality Management", "Support", "CRM", "Assets", "Projects",
-        "Integrations", "ERPNext Settings", "Build", "Tools", "Website"
+        "Integrations", "ERPNext Settings", "Build", "Tools", "Website",
+        "HR", "Payroll"
     ]
     valid_blocked = [m for m in BLOCKED_MODULES if frappe.db.exists("Module Def", m)]
     prof_name = "QD - Employee Self Service"
